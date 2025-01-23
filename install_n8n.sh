@@ -11,9 +11,8 @@ check_root() {
 # Function to check if the domain is correctly pointed to this server
 check_domain() {
     local domain=$1
-    local server_ip=$(curl -s https://api.ipify1140Chắc chắn rồi! Nếu bạn đang sử dụng AlmaLinux và đã cài đặt Docker và Docker Compose, bạn có thể bỏ qua phần cài đặt Docker trong script của bạn. Dưới đây là phiên bản đã được chỉnh sửa của script để phù hợp với môi trường hiện tại của bạn:
-
-```bash
+    local server_ip=$(curl -s 
+    
 #!/bin/bash
 
 # Function to check if the script is run as root
@@ -113,7 +112,5 @@ else
     echo "Please update your DNS record to point $DOMAIN to IP $(curl -s https://api.ipify.org)"
     echo "After updating the DNS, run this script again."
     exit 1
-fi
 
-# Since Docker and Docker Compose are already installed, just set up n8n
-setup_n8n
+
