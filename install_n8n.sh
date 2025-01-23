@@ -1,45 +1,50 @@
 #!/bin/bash
 
-# Kiểm tra xem script có được chạy với quyền root không
-if [[ $EUID -ne 0 ]]; then
-   echo "This script needs to be run with root privileges" 
-   exit 1
-fi
+# Function to check if the script is run as root
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "This script needs to be run with root privileges"
+        exit 1
+    fi
+}
 
-# Hàm kiểm tra domain
+# Function to check if the domain is correctly pointed to this server
+check_domain() {
+    local domain=$1
+    local server_ip=$(curl -s https://api.ipify1140Chắc chắn rồi! Nếu bạn đang sử dụng AlmaLinux và đã cài đặt Docker và Docker Compose, bạn có thể bỏ qua phần cài đặt Docker trong script của bạn. Dưới đây là phiên bản đã được chỉnh sửa của script để phù hợp với môi trường hiện tại của bạn:
+
+```bash
+#!/bin/bash
+
+# Function to check if the script is run as root
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "This script needs to be run with root privileges"
+        exit 1
+    fi
+}
+
+# Function to check if the domain is correctly pointed to this server
 check_domain() {
     local domain=$1
     local server_ip=$(curl -s https://api.ipify.org)
     local domain_ip=$(dig +short $domain)
 
-    if [ "$domain_ip" = "$server_ip" ]; then
-        return 0  # Domain đã trỏ đúng
+    if [ "$domain_ip" == "$server_ip" ]; then
+        return 0  # Domain is correctly pointed
     else
-        return 1  # Domain chưa trỏ đúng
+        return 1  # Domain is not correctly pointed
     fi
 }
 
-# Nhận input domain từ người dùng
-read -p "Enter your domain or subdomain: " DOMAIN
+# Function to prepare n8n setup
+setup_n8n() {
+    local n8n_dir="/home/n8n"
 
-# Kiểm tra domain
-if check_domain $DOMAIN; then
-    echo "Domain $DOMAIN has been correctly pointed to this server. Continuing installation"
-else
-    echo "Domain $DOMAIN has not been pointed to this server."
-    echo "Please update your DNS record to point $DOMAIN to IP $(curl -s https://api.ipify.org)"
-    echo "After updating the DNS, run this script again"
-    exit 1
-fi
+    mkdir -p $n8n_dir
 
-# Sử dụng thư mục /home trực tiếp
-N8N_DIR="/home/n8n"
-
-# Tạo thư mục cho n8n
-mkdir -p $N8N_DIR
-
-# Tạo file docker-compose.yml
-cat << EOF > $N8N_DIR/docker-compose.yml
+    # Create docker-compose.yml
+    cat << EOF > $n8n_dir/docker-compose.yml
 version: "3"
 services:
   n8n:
@@ -55,7 +60,7 @@ services:
       - WEBHOOK_URL=https://${DOMAIN}
       - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
     volumes:
-      - $N8N_DIR:/home/node/.n8n
+      - $n8n_dir:/home/node/.n8n
 
   caddy:
     image: caddy:2
@@ -64,7 +69,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - $N8N_DIR/Caddyfile:/etc/caddy/Caddyfile
+      - $n8n_dir/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -75,20 +80,40 @@ volumes:
   caddy_config:
 EOF
 
-# Tạo file Caddyfile
-cat << EOF > $N8N_DIR/Caddyfile
+    # Create Caddyfile
+    cat << EOF > $n8n_dir/Caddyfile
 ${DOMAIN} {
     reverse_proxy n8n:5678
 }
 EOF
 
-# Đặt quyền cho thư mục n8n
-chown -R 1000:1000 $N8N_DIR
-chmod -R 755 $N8N_DIR
+    # Set permissions
+    chown -R 1000:1000 $n8n_dir
+    chmod -R 755 $n8n_dir
 
-# Khởi động các container
-cd $N8N_DIR
-docker-compose up -d
+    # Start containers
+    cd $n8n_dir
+    docker-compose up -d
 
-echo "n8n đã được cài đặt và cấu hình với SSL sử dụng Caddy. Truy cập https://${DOMAIN} để sử dụng."
-echo "Các file cấu hình và dữ liệu được lưu trong $N8N_DIR"
+    echo "n8n has been installed and configured with SSL using Caddy. Access https://${DOMAIN} to use it."
+    echo "Configuration files and data are stored in $n8n_dir"
+}
+
+# Main script execution
+check_root
+
+# Prompt user for domain input
+read -p "Enter your domain or subdomain: " DOMAIN
+
+# Check if the domain is pointed to this server
+if check_domain $DOMAIN; then
+    echo "Domain $DOMAIN has been correctly pointed to this server. Continuing installation."
+else
+    echo "Domain $DOMAIN has not been pointed to this server."
+    echo "Please update your DNS record to point $DOMAIN to IP $(curl -s https://api.ipify.org)"
+    echo "After updating the DNS, run this script again."
+    exit 1
+fi
+
+# Since Docker and Docker Compose are already installed, just set up n8n
+setup_n8n
